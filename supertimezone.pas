@@ -62,6 +62,9 @@ type
     class var FCache: TObjectDictionary<string, TSuperTimeZone>;
     class function GetSuperTimeZoneInstance(const Name: string): TSuperTimeZone; static;
     class function GetLocalSuperTimeZoneInstance: TSuperTimeZone; static;
+    {$ELSE}
+    class function GetSuperTimeZoneInstance(const Name: string): TSuperTimeZone;
+    class function GetLocalSuperTimeZoneInstance: TSuperTimeZone;
     {$ENDIF}
   public
     constructor Create(const TimeZoneName: SOString = '');
@@ -94,12 +97,11 @@ type
     {$IFDEF HAVE_CLASS_CONSTRUCTOR}
     class property Local: TSuperTimeZone read GetLocalSuperTimeZoneInstance;
     class property Zone[const TimeZoneName: string]: TSuperTimeZone read GetSuperTimeZoneInstance;
+    {$ELSE}
+    class function Local: TSuperTimeZone;
+    class function Zone(const TimeZoneName: string): TSuperTimeZone;
     {$ENDIF}
   end;
-
-{$IFNDEF HAVE_CLASS_CONSTRUCTOR}
-function LocalSuperTimeZone: TSuperTimeZone;
-{$ENDIF}
 
 {$IFDEF MSWINDOWS}
   {$WARN SYMBOL_PLATFORM OFF}
@@ -164,14 +166,29 @@ function _ConvertUTCDateTimeToLocal(const TimeZoneName: SOString;
 
 implementation
 
+uses
+  Classes;
+
 {$IFNDEF HAVE_CLASS_CONSTRUCTOR}
 var
-  _LocalSuperTimeZone: TSuperTimeZone = nil;
-function LocalSuperTimeZone: TSuperTimeZone;
+  FCacheCS: TRTLCriticalSection;
+  FCache: TStringList = nil;
+function _GetSuperTimeZoneInstance(const Name: string): TSuperTimeZone;
+var
+  nIdx: Integer;
 begin
-  if not Assigned(_LocalSuperTimeZone) then
-    _LocalSuperTimeZone := TSuperTimeZone.Create;
-  Result := _LocalSuperTimeZone;
+  EnterCriticalSection(FCacheCS);
+  try
+    if FCache.Find(Name, nIdx) then
+      Result := FCache.Objects[nIdx] as TSuperTimeZone
+    else
+    begin
+      Result := TSuperTimeZone.Create(Name);
+      FCache.AddObject(Name, Result);
+    end;
+  finally
+    LeaveCriticalSection(FCacheCS);
+  end;
 end;
 {$ENDIF}
 
@@ -262,10 +279,12 @@ begin
   FCache.Free;
   DeleteCriticalSection(FCacheCS);
 end;
+{$ENDIF}
 
 class function TSuperTimeZone.GetSuperTimeZoneInstance(
   const Name: string): TSuperTimeZone;
 begin
+  {$IFDEF HAVE_CLASS_CONSTRUCTOR}
   EnterCriticalSection(FCacheCS);
   try
     if not FCache.TryGetValue(Name, Result) then
@@ -276,11 +295,26 @@ begin
   finally
     LeaveCriticalSection(FCacheCS);
   end;
+  {$ELSE}
+    Result := _GetSuperTimeZoneInstance(Name);
+  {$ENDIF}
 end;
 
 class function TSuperTimeZone.GetLocalSuperTimeZoneInstance: TSuperTimeZone;
 begin
   Result := TSuperTimeZone.GetSuperTimeZoneInstance('');
+end;
+
+{$IFNDEF HAVE_CLASS_CONSTRUCTOR}
+class function TSuperTimeZone.Zone(
+  const TimeZoneName: string): TSuperTimeZone;
+begin
+  Result := GetSuperTimeZoneInstance(TimeZoneName);
+end;
+
+class function TSuperTimeZone.Local: TSuperTimeZone;
+begin
+  Result := TSuperTimeZone.GetLocalSuperTimeZoneInstance;
 end;
 {$ENDIF}
 
@@ -1438,8 +1472,20 @@ error:
 end;
 
 initialization
+  {$IFNDEF HAVE_CLASS_CONSTRUCTOR}
+  InitializeCriticalSection(FCacheCS);
+  FCache := TStringList.Create;
+  FCache.Sorted := True;
+  {$ENDIF}
 finalization
-{$IFNDEF HAVE_CLASS_CONSTRUCTOR}
-  _LocalSuperTimeZone.Free;
-{$ENDIF}
+  {$IFNDEF HAVE_CLASS_CONSTRUCTOR}
+  while FCache.Count > 0 do
+  begin
+    FCache.Objects[FCache.Count - 1].Free;
+    FCache.Delete(FCache.Count - 1);
+  end;
+  FCache.Free;
+  DeleteCriticalSection(FCacheCS);
+  {$ENDIF}
 end.
+

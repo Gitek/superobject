@@ -35,7 +35,7 @@ begin
   {$IFDEF HAVE_CLASS_CONSTRUCTOR}
   Result := TSuperTimeZone.Zone[TimeZone].JavaToDelphi(dt);
   {$ELSE}
-  Result := LocalSuperTimeZone.JavaToDelphi(dt);
+  Result := TSuperTimeZone.Zone(TimeZone).JavaToDelphi(dt);
   {$ENDIF}
 end;
 
@@ -44,7 +44,7 @@ begin
   {$IFDEF HAVE_CLASS_CONSTRUCTOR}
   Result := TSuperTimeZone.Zone[TimeZone].DelphiToJava(dt);
   {$ELSE}
-  Result := LocalSuperTimeZone.DelphiToJava(dt);
+  Result := TSuperTimeZone.Zone(TimeZone).DelphiToJava(dt);
   {$ENDIF}
 end;
 
@@ -53,7 +53,7 @@ begin
   {$IFDEF HAVE_CLASS_CONSTRUCTOR}
   Result := TSuperTimeZone.Zone[TimeZone].JavaToISO8601(dt);
   {$ELSE}
-  Result := LocalSuperTimeZone.JavaToISO8601(dt);
+  Result := TSuperTimeZone.Zone(TimeZone).JavaToISO8601(dt);
   {$ENDIF}
 end;
 
@@ -62,7 +62,7 @@ begin
   {$IFDEF HAVE_CLASS_CONSTRUCTOR}
   Result := TSuperTimeZone.Zone[TimeZone].DelphiToISO8601(dt);
   {$ELSE}
-  Result := LocalSuperTimeZone.DelphiToISO8601(dt);
+  Result := TSuperTimeZone.Zone(TimeZone).DelphiToISO8601(dt);
   {$ENDIF}
 end;
 
@@ -71,7 +71,7 @@ begin
   {$IFDEF HAVE_CLASS_CONSTRUCTOR}
   Result := TSuperTimeZone.Zone[TimeZone].ISO8601ToJava(str, ms);
   {$ELSE}
-  Result := LocalSuperTimeZone.ISO8601ToJava(str, ms);
+  Result := TSuperTimeZone.Zone(TimeZone).ISO8601ToJava(str, ms);
   {$ENDIF}
 end;
 
@@ -80,7 +80,7 @@ begin
   {$IFDEF HAVE_CLASS_CONSTRUCTOR}
   Result := TSuperTimeZone.Zone[TimeZone].ISO8601ToDelphi(str, dt);
   {$ELSE}
-  Result := LocalSuperTimeZone.ISO8601ToDelphi(str, dt);
+  Result := TSuperTimeZone.Zone(TimeZone).ISO8601ToDelphi(str, dt);
   {$ENDIF}
 end;
 
